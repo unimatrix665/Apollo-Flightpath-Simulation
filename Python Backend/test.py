@@ -8,6 +8,8 @@ from astropy.coordinates import (
 )
 import numpy as np
 from math import sqrt
+import scipy
+from scipy.integrate import solve_ivp
 
 # Epoch
 epoch = Time ("1969-07-16T00:00:00", scale="utc")
