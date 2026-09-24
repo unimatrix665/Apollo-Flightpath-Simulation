@@ -8,7 +8,10 @@ from astropy.coordinates import (
     SkyCoord,
     get_body_barycentric)
 from math import sqrt
+import numpy as np
+
 time = Time("1969-07-16T00:00:00", scale="utc")
+delta_t = 1 * u.s
 
 class Himmelskörper:
     def __init__(self):
@@ -55,8 +58,32 @@ def get_moon_distance(time, moon_pos_geo):
     moon_distance_geo = moon_distance_geo * u.km
     return moon_distance_geo
 
-def get_force(Body, ref_Body,):
-    distance = sqrt(pow(Body.pos_geo.x.value - ref_Body.pos_geo.value, 2) +
-                    pow(Body.pos_geo.y.value - ref_Body.pos_geo.value, 2) +
-                    pow(Body.pos_geo.z.value - ref_Body.pos_geo.value, 2)
+def get_accel(Body, ref_Body,):
+    distance = sqrt(pow(Body.pos_geo.x.value - ref_Body.pos_geo.x.value, 2) +
+                    pow(Body.pos_geo.y.value - ref_Body.pos_geo.y.value, 2) +
+                    pow(Body.pos_geo.z.value - ref_Body.pos_geo.z.value, 2)
     )
+    F = const.G * ref_Body.mass**2/distance**2
+    a = F / ref_Body.mass
+    dif_x = ref_Body.pos_geo.x - Body.pos_geo.x
+    dif_y = ref_Body.pos_geo.y - Body.pos_geo.y
+    dif_z = ref_Body.pos_geo.z - Body.pos_geo.z
+    dif = dif_x + dif_y + dif_z
+    partition_x = dif_x / dif
+    partition_y = dif_y / dif
+    partition_z = dif_z / dif
+    Body.vel.x = Body.vel.x + partition_x * a * delta_t.to(u.s)
+    Body.vel.y = Body.vel.y + partition_y * a * delta_t.to(u.s)
+    Body.vel.z = Body.vel.z + partition_z * a * delta_t.to(u.s)
+
+def get_accel2(body, ref_body):
+    """Acceleration of `body` due to `ref_body`'s gravity, in km/s^2."""
+    diff = ref_body.pos_geo.xyz.to(u.km).value - body.pos_geo.xyz.to(u.km).value  # ref - body
+    distance = np.linalg.norm(diff)
+    direction = diff / distance                     # unit vector, points toward ref_body
+
+    mu = const.G.to(u.km**3 / (u.kg * u.s**2)).value * ref_body.mass.to(u.kg).value
+    return mu / distance**2 * direction              # km/s^2
+
+moon = Himmelskörper
+Apollo = Himmelskörper
