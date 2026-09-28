@@ -1,30 +1,44 @@
-import astropy.constants as const
 import astropy.units as u
 from astropy.time import Time
-from astropy.coordinates import (
-    solar_system_ephemeris,
-    get_body_barycentric_posvel)
+import matplotlib.pyplot as plt
+import funcs_classes
 import numpy as np
-from astropy.coordinates import SkyCoord
-
-from test import mass_earth
 
 start_date = Time("1969-07-16T00:00:00", scale="utc")
+end_date = Time("1969-07-25T00:00:00", scale="utc")
+delta_t = 1*u.s
 
-class Himmelskörper:
-    def __init__(self):
-        mass = 0 * u.kg
-        pos = [0,0,0]
-        vel = [0,0,0]
-        jpl_name = ""
+apollo = funcs_classes.Body()
+moon = funcs_classes.Body()
 
-    def get_pos_over_time(self):
-        with solar_system_ephemeris.set("jpl"):
-            self.pos, self.vel = get_body_barycentric_posvel(self.jpl_name, start_date)
-            return self.pos
+def run_time(start_date, end_date):
+    curr_date = start_date
+    pos = funcs_classes.get_moon_coord(curr_date).xyz / 2
+    apollo.set_pos(pos)
+    while start_date < end_date:
+        apollo.set_vel(funcs_classes.get_accel2(moon, apollo))
+        apollo.pos_geo = apollo.pos_geo + apollo.vel * delta_t
+        return apollo.pos_geo
 
-    def get_vel_over_time(self):
-        with solar_system_ephemeris.set("jpl"):
-            self.pos, self.vel = get_body_barycentric_posvel(self.jpl_name, start_date)
-            return  self.vel
 
+def blockfunc(start_date, end_date):
+    plt.style.use('_mpl-gallery')
+
+      # make data
+    x = run_time(start_date, end_date).x.value
+    y = run_time(start_date, end_date).y.value
+    x2 = funcs_classes.get_moon_coord(start_date).x.value
+    y2 = funcs_classes.get_moon_coord(start_date).y.value
+
+    fig, ax = plt.subplots()
+
+    ax.plot(x2, y2 + 2.5, 'x', markeredgewidth=2)
+    ax.plot(x, y, linewidth=2.0)
+    ax.plot(x2, y2 - 2.5, 'o-', linewidth=2)
+
+    ax.set(xlim=(0, 8), xticks=np.arange(1, 8),
+           ylim=(0, 8), yticks=np.arange(1, 8))
+
+    plt.show()
+
+blockfunc(start_date, end_date)
