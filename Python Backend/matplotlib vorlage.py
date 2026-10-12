@@ -21,3 +21,22 @@ def blockfunc():
            ylim=(0, 8), yticks=np.arange(1, 8))
 
     plt.show()
+
+#temp store
+    def get_accel(Body, ref_Body, ):
+        distance = sqrt(pow(Body.pos_geo.x.value - ref_Body.pos_geo.x.value, 2) +
+                        pow(Body.pos_geo.y.value - ref_Body.pos_geo.y.value, 2) +
+                        pow(Body.pos_geo.z.value - ref_Body.pos_geo.z.value, 2)
+                        )
+        F = const.G * ref_Body.mass ** 2 / distance ** 2
+        a = F / ref_Body.mass
+        dif_x = ref_Body.pos_geo.x - Body.pos_geo.x
+        dif_y = ref_Body.pos_geo.y - Body.pos_geo.y
+        dif_z = ref_Body.pos_geo.z - Body.pos_geo.z
+        dif = dif_x + dif_y + dif_z
+        partition_x = dif_x / dif
+        partition_y = dif_y / dif
+        partition_z = dif_z / dif
+        Body.vel.x = Body.vel.x + partition_x * a * delta_t.to(u.s)
+        Body.vel.y = Body.vel.y + partition_y * a * delta_t.to(u.s)
+        Body.vel.z = Body.vel.z + partition_z * a * delta_t.to(u.s)
