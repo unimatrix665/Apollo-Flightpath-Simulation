@@ -32,10 +32,8 @@ from funcs_classes import (Ephemeris, Dynamics, state_from_geocentric, precessio
 H = 3600.0
 unit = lambda v: v / np.linalg.norm(v)
 
-
-# ===========================================================================
 # 0. Setup
-# ===========================================================================
+
 eph = Ephemeris(D.GET_TLI, D.GET_ENTRY_INTERFACE + H)
 dyn = Dynamics(eph)
 
@@ -65,18 +63,18 @@ def log(s=""):
     print(s); report.append(s)
 
 
-# ===========================================================================
+
 # 1. CHECK (unfitted): what does the documented TLI vector do on its own?
-# ===========================================================================
+
 free = dyn.propagate(y_tli, D.GET_TLI, D.GET_LOI1 + 3 * H)
 t_free, d_free = closest_approach_to_moon(free, D.GET_LOI1 - 4 * H, D.GET_LOI1 + 3 * H)
 log("CHECK 1 - TLI vector alone, no midcourse burns, full Earth+Moon+Sun gravity:")
 log(f"  reaches the Moon at GET {t_free/H:.2f} h (real LOI: {D.GET_LOI1/H:.2f} h), "
     f"closest approach {d_free - D.LUNAR_RADIUS_KM:,.0f} km above the surface")
 
-# ===========================================================================
+
 # 2. Outbound: TLI -> separation burn -> MCC-2 -> pericynthion
-# ===========================================================================
+
 seg_tli_sep = dyn.propagate(y_tli, D.GET_TLI, D.GET_SEPARATION_BURN)
 y = seg_tli_sep.y[:, -1].copy()
 y[3:] -= D.SEPARATION_BURN_DV_KMS * unit(y[3:])           # [ASSUMED] retrograde
@@ -139,9 +137,9 @@ loi_dv = np.linalg.norm(rel_v) - v_post
 log(f"CHECK 2 - implied LOI burn: {loi_dv*1000:.0f} m/s retrograde (approach speed "
     f"{np.linalg.norm(rel_v):.3f} km/s -> {v_post:.3f} km/s)")
 
-# ===========================================================================
+
 # 3. Return: TEI -> entry interface   (Lambert seed + full-force correction)
-# ===========================================================================
+
 t_tei, t_ei = D.GET_TEI, D.GET_ENTRY_INTERFACE
 moon_tei, moon_vel_tei = eph.moon(t_tei), eph.moon_vel(t_tei)
 to_j2000 = precession_matrix(t_ei).T
@@ -217,9 +215,9 @@ log(f"CHECK 4 - implied TEI burn {tei_dv*1000:.0f} m/s (about 1 km/s expected)")
 log(f"CHECK 5 - implied entry longitude {lon_ei:.1f} deg E; documented splashdown "
     f"13.3 N, 169.2 W is ~1,500 nmi downrange")
 
-# ===========================================================================
+
 # 4. Sample the full trajectory
-# ===========================================================================
+
 def sample(sol, t0, t1, dt):
     ts = np.arange(t0, t1, dt)
     return ts, sol.sol(ts)[:3].T
@@ -248,9 +246,9 @@ all_t = np.concatenate([l[1] for l in legs])
 all_p = np.vstack([l[2] for l in legs])
 alt = np.linalg.norm(all_p, axis=1) - D.R_EARTH
 
-# ---------------------------------------------------------------------------
+
 # Van Allen belts -- v1 model: spherical altitude shells (no geomagnetic tilt)
-# ---------------------------------------------------------------------------
+
 INNER = (1000.0, 6000.0)        # km altitude  [approximate]
 OUTER = (13000.0, 60000.0)
 
@@ -263,16 +261,16 @@ def dwell(t, a, band):
 
 out_mask = all_t < D.GET_TLI + 12 * H
 ret_mask = all_t > t_ei - 12 * H
-log("\nVAN ALLEN BELTS (v1 spherical-shell approximation, NOT the real geomagnetic geometry):")
+log("\nVAN ALLEN BELTS (v1 spherical approximation):")
 for name, m in (("outbound (first 12 h)", out_mask), ("return (last 12 h)", ret_mask)):
     log(f"  {name:22s} inner shell {dwell(all_t[m], alt[m], INNER)/60:6.1f} min | "
         f"outer shell {dwell(all_t[m], alt[m], OUTER)/60:6.1f} min")
-log("  (published estimate using geomagnetic coordinates: ~14 min inside the proton-belt limits, "
-    "outbound -- Hutchison)")
+#log("  (published estimate using geomagnetic coordinates: ~14 min inside the proton-belt limits, "
+#    "outbound -- Hutchison)")
 
-# ===========================================================================
+
 # 5. Figure
-# ===========================================================================
+
 moon_orbit_normal = unit(np.cross(eph.moon(D.GET_LOI1), eph.moon_vel(D.GET_LOI1)))
 e1 = unit(eph.moon(D.GET_LOI1))
 e2 = np.cross(moon_orbit_normal, e1)
@@ -287,18 +285,18 @@ axC = fig.add_subplot(gs[1, 1])
 # --- A: top-down, looking down the Moon's orbital-plane normal -------------
 mt = np.arange(D.GET_TLI, t_ei, 600.0)
 mp = proj(np.array([eph.moon(t) for t in mt]))
-axA.plot(mp[:, 0], mp[:, 1], "--", color="0.65", lw=1, label="Moon's path")
+axA.plot(mp[:, 0], mp[:, 1], "--", color="0.65", lw=1, label="Mond orbit")
 colors = {"tli_to_separation": "tab:blue", "separation_to_mcc2": "tab:blue",
           "mcc2_to_pericynthion": "tab:blue", "lunar_stay_idealised": "0.4", "transearth": "tab:orange"}
 done = set()
 for label, ts, ps in legs:
     q = proj(ps)
-    key = "outbound" if colors[label] == "tab:blue" else ("return" if label == "transearth" else "lunar stay")
+    key = "Hinflug" if colors[label] == "tab:blue" else ("Rückflug" if label == "transearth" else "Mondaufenthalt")
     axA.plot(q[:, 0], q[:, 1], color=colors[label], lw=1.8, label=None if key in done else key)
     done.add(key)
 axA.add_patch(plt.Circle((0, 0), D.R_EARTH, color="tab:blue", alpha=0.5, zorder=3))
-for t, name, mk in ((D.GET_TLI, "TLI", "o"), (D.GET_MCC2, "MCC-2", "s"), (T_PERI, "LOI", "D"),
-                    (t_tei, "TEI", "^"), (t_ei, "Entry", "v")):
+for t, name, mk in ((D.GET_TLI, "", ""), (D.GET_MCC2, "MCC-2", "s"), (T_PERI, "LOI", "D"),
+                    (t_tei, "TEI", "^"), (t_ei, "Wiedereintritt", "v")):
     pt = proj(eph.moon(t) if name in ("LOI", "TEI") else
               (pos0 if name == "TLI" else
                (seg_sep_mcc.sol(t)[:3] if name == "MCC-2" else y_ei[:3])))[0]
@@ -308,29 +306,29 @@ for t, name in ((D.GET_LOI1, "Moon at LOI"), (t_tei, "Moon at TEI")):
     c = proj(eph.moon(t))[0]
     axA.add_patch(plt.Circle(c, 6000, fc="0.85", ec="0.4", zorder=2))   # Moon radius exaggerated 3.5x
 axA.set_aspect("equal"); axA.grid(alpha=0.25)
-axA.set_xlabel("km  (toward the Moon at LOI)"); axA.set_ylabel("km  (in the Moon's orbital plane)")
-axA.set_title("Apollo 11 -- top-down view (looking down the Moon's orbital-plane normal)")
+axA.set_xlabel("km  (Abstand zum Mond)"); axA.set_ylabel("km  (in the Moon's orbital plane)")
+axA.set_title("Apollo 11, Draufsicht (Blick senkrecht auf die Mondbahnebene)")
 axA.legend(loc="upper left", fontsize=8)
 
 # --- B/C: altitude vs time with belt bands ----------------------------------
 def belt_panel(ax, mask, t_ref, title, xlabel):
-    ax.axhspan(*INNER, color="tab:red", alpha=0.25, label="inner belt (approx.)")
-    ax.axhspan(*OUTER, color="tab:green", alpha=0.18, label="outer belt (approx.)")
+    ax.axhspan(*INNER, color="tab:red", alpha=0.25, label="innerer Gürtel (ungefähr)")
+    ax.axhspan(*OUTER, color="tab:green", alpha=0.18, label="äußerer Gürtel (ungefähr)")
     ax.plot((all_t[mask] - t_ref) / H, alt[mask], color="k", lw=1.5)
-    ax.set_title(title); ax.set_xlabel(xlabel); ax.set_ylabel("altitude [km]"); ax.grid(alpha=0.25)
+    ax.set_title(title); ax.set_xlabel(xlabel); ax.set_ylabel("Höhe [km]"); ax.grid(alpha=0.25)
     ax.set_ylim(0, 75000)
 
-belt_panel(axB, out_mask, D.GET_TLI, "Departure: first 12 h after TLI", "hours after TLI")
+belt_panel(axB, out_mask, D.GET_TLI, "Abflug: erste 12 Stunden nach der TLI", "Stunden nach der TLI")
 axB.legend(fontsize=8, loc="lower right")
-belt_panel(axC, ret_mask, t_ei, "Return: last 12 h before entry interface", "hours relative to entry interface")
+belt_panel(axC, ret_mask, t_ei, "Rückflug: letzte 12 Stunden vor dem Athmosspäreneintritt", "Stunden bis zum Athmosspäreneintritt")
 axC.set_xlim(-12, 0)
-fig.suptitle("Apollo 11 trajectory reconstruction from documented state vectors "
-             "(Earth+J2, Moon, Sun gravity; lunar stay idealised)", fontsize=11)
+fig.suptitle("Apollo-11-Flugbahnrekonstruktion anhand dokumentierter Zustandsvektoren (Erde–Mond, ohne Sonne, ideale Zweikörperbahnen, "
+             "Mondaufenthalt idealisiert)", fontsize=11)
 fig.savefig("apollo11_trajectory.png", dpi=140, bbox_inches="tight")
 
-# ===========================================================================
+
 # 6. Export (stable intermediate format for a future 3D / interactive viewer)
-# ===========================================================================
+
 export = {
     "meta": {"frame": "Earth-centred inertial, J2000 axes", "units": {"t": "GET s", "pos": "km"},
              "range_zero_utc": D.RANGE_ZERO_UTC, "ephemeris": "astropy builtin",
