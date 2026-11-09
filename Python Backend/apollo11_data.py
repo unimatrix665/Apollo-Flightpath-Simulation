@@ -46,11 +46,15 @@ TLI_INCLINATION_DEG = 31.383
 # [DERIVED] heading = asin(cos(i)/cos(dec)), eastward (<90 deg) branch.
 
 # --- Small documented burns ---------------------------------------------------
-# [DOC] Mission Report sec. 4.5: ~20 ft/s SPS burn 23 min after spacecraft ejection
-#       (the 04:40 separation maneuver).
-# [DOC] Mission Report sec. 3.0: MCC at ~26.5 h "provided a 20.9 ft/sec velocity change".
+# [DOC] Mission Report Table 7-IV (maneuver summary) and Orloff, "Apollo by the
+#       Numbers" (Translunar Phase table):
+#         separation maneuver  04:40:01.72, burn time 2.93 s, dV 19.7 ft/s
+#         first midcourse corr. 26:44:58.64, burn time 3.13 s, dV 20.9 ft/s
+#       (Mission Report sec. 4.5 only says "~20 ft/s" for the separation burn;
+#       the 19.7 ft/s of the table is the precise value. Sec. 3.0 confirms the
+#       20.9 ft/sec of the midcourse correction.)
 FT_TO_KM = 0.3048e-3
-SEPARATION_BURN_DV_KMS = 20.0 * FT_TO_KM       # ~6.1 m/s
+SEPARATION_BURN_DV_KMS = 19.7 * FT_TO_KM       # ~6.0 m/s
 MCC2_DV_KMS = 20.9 * FT_TO_KM                  # ~6.4 m/s
 # [ASSUMED] The reports used here give the MAGNITUDE of these burns but not
 # their direction. The separation burn is modelled as retrograde (it was
@@ -59,31 +63,44 @@ MCC2_DV_KMS = 20.9 * FT_TO_KM                  # ~6.4 m/s
 
 # --- Lunar orbit [DOC: Mission Report sec. 3.0 / 4.6] ------------------------
 NM_TO_KM = 1.852
-LUNAR_RADIUS_KM = 1737.4
+LUNAR_RADIUS_KM = 1737.4        # IAU value; NASA Moon Fact Sheet versions give 1737.1 (mean) / 1738.1 (equatorial)
 LOI1_ORBIT_ALT_NM = (60.9, 169.9)              # pericynthion x apocynthion after LOI
 LOI2_ORBIT_ALT_NM = (54.4, 66.1)               # after circularisation
 PERICYNTHION_ALT_KM = LOI1_ORBIT_ALT_NM[0] * NM_TO_KM
-# [DOC] Mission Report sec. 4.6: LOI was "a 6-minute service propulsion maneuver".
+# [DOC] Mission Report, service propulsion maneuver summary: LOI ignition
+#       75:49:50.37, cutoff 75:55:47.90 -> burn time 357.53 s (sec. 4.6 calls it
+#       "a 6-minute service propulsion maneuver", which is only the rounded value).
 # [DERIVED] Burn straddles pericynthion: pericynthion = ignition + half the duration.
-LOI1_BURN_DURATION_S = 360.0
+LOI1_BURN_DURATION_S = 357.53
 # [ASSUMED] Lunar stay is idealised as a circular orbit at the mean LOI-2
 # altitude, in the plane of the approach. It matters only for the Moon-centred
 # geometry at TEI; at Earth scale it is invisible.
 LUNAR_ORBIT_RADIUS_KM = LUNAR_RADIUS_KM + 0.5 * sum(LOI2_ORBIT_ALT_NM) * NM_TO_KM
 
 # --- Entry interface [DOC] ----------------------------------------------------
-# Altitude 400,000 ft; Entry PAD / Flight Journal: speed 36,194 ft/s, flight-path
-# angle -6.49 deg. Geocentric distance/latitude derived from the Mission Report
-# entry table by Hutchison: r = 6500.02 km, geocentric latitude = -3.17 deg.
+# [DOC] Mission Report Table 7-VII "Entry trajectory parameters", entry interface
+# (400,000 ft): time 195:03:05.7, geodetic latitude 3.19 deg S, longitude
+# 171.96 deg E, altitude 65.8 nmi, space-fixed velocity 36,194.4 ft/s, space-fixed
+# flight-path angle -6.48 deg, heading 50.18 deg east of north.
+# Other values for the flight-path angle (Mission Report sec. 8.6.7): -6.483 deg
+# from tracking, -6.488 deg from the onboard computer (= the "-6.49" of the Entry PAD).
+# [DERIVED] Geocentric distance/latitude from the geodetic table values, after
+# Hutchison (oikofuge.com): r = 6500.02 km, geocentric latitude = -3.17 deg.
 EI_GEOCENTRIC_DISTANCE_KM = 6500.02
 EI_GEOCENTRIC_LATITUDE_DEG = -3.17
-EI_FLIGHT_PATH_ANGLE_DEG = -6.49
+EI_FLIGHT_PATH_ANGLE_DEG = -6.48
+# Not used as input, but available as an independent check of the fit:
+EI_LONGITUDE_DEG_E = 171.96                    # Table 7-VII
+EI_HEADING_DEG = 50.18                         # Table 7-VII, east of north
 EI_SPEED_FTS = 36194.0                         # used only as an independent check
 EI_SPEED_KMS = EI_SPEED_FTS * FT_TO_KM
 
 # --- Physical constants -------------------------------------------------------
-MU_EARTH = 398600.435507     # km^3/s^2 (JPL)
-MU_MOON = 4902.800066
-MU_SUN = 1.32712440018e11
+# [DOC] JPL DE440 (Park et al. 2021), as listed at ssd.jpl.nasa.gov/astro_par.html.
+# All three GM values now come from the same set (the previous MU_MOON/MU_SUN
+# belonged to older ephemeris sets).
+MU_EARTH = 398600.435507     # km^3/s^2
+MU_MOON = 4902.800118
+MU_SUN = 1.32712440041279419e11
 R_EARTH = 6378.137
 J2_EARTH = 1.08262668e-3
