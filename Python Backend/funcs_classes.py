@@ -20,7 +20,7 @@ import apollo11_data as D
 
 # 'builtin' needs no download. On a machine that can reach NAIF, set this to
 # "de440" (or "jpl") for a JPL kernel -- nothing else in the code changes.
-EPHEMERIS = "builtin"
+EPHEMERIS = "JPL"
 
 RANGE_ZERO = Time(D.RANGE_ZERO_UTC, scale="utc")
 
